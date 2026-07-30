@@ -1,0 +1,13 @@
+/.git
+/.github
+/.wordpress-org
+/docs
+/tests
+.DS_Store
+.distignore
+.editorconfig
+.gitattributes
+.gitignore
+README.md
+SECURITY.md
+phpcs.xml.dist
