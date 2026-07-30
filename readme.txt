@@ -41,8 +41,8 @@ After the employee approves access, the plugin exchanges the short-lived authori
 The service is operated by Lerion Jake Nwauda Digital Innovations Ltd.
 
 * Service information: https://lerionjakenwauda.com/plugins/ljndi-hrms-workflow
-* Privacy policy: https://lerionjakenwauda.com/privacy-policy
-* Terms: https://lerionjakenwauda.com/terms
+* Privacy policy: https://lerionjakenwauda.com/privacy-policy/
+* Terms of service: https://lerionjakenwauda.com/terms-of-service/
 
 The website administrator must intentionally configure OAuth credentials before any data is sent to the external service.
 
