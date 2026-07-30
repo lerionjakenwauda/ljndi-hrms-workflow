@@ -89,8 +89,8 @@ The plugin communicates with the LJNDI HRMS identity service configured by the s
 Documentation and support:
 
 - https://lerionjakenwauda.com/plugins/ljndi-hrms-workflow
-- https://lerionjakenwauda.com/privacy-policy
-- https://lerionjakenwauda.com/terms
+- https://lerionjakenwauda.com/privacy-policy/
+- https://lerionjakenwauda.com/terms-of-service/
 
 ## WordPress.org release
 
