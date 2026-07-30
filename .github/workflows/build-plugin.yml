@@ -1,0 +1,39 @@
+name: Build plugin ZIP
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build distributable plugin directory
+        run: |
+          mkdir -p build/ljndi-hrms-workflow
+          rsync -av --exclude-from=.distignore ./ build/ljndi-hrms-workflow/
+          rm -rf build/ljndi-hrms-workflow/build
+
+      - name: Validate required release files
+        run: |
+          test -f build/ljndi-hrms-workflow/ljndi-hrms-workflow.php
+          test -f build/ljndi-hrms-workflow/readme.txt
+          test -f build/ljndi-hrms-workflow/LICENSE
+          test -f build/ljndi-hrms-workflow/uninstall.php
+
+      - name: Create installable ZIP
+        run: |
+          cd build
+          zip -r ljndi-hrms-workflow-0.1.0.zip ljndi-hrms-workflow
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ljndi-hrms-workflow-0.1.0
+          path: build/ljndi-hrms-workflow-0.1.0.zip
+          if-no-files-found: error
+          retention-days: 14
