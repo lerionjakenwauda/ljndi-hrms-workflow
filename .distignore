@@ -1,6 +1,7 @@
 /.git
 /.github
 /.wordpress-org
+/distribution
 /docs
 /tests
 .DS_Store
