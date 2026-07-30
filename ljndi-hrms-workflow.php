@@ -11,6 +11,7 @@
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: ljndi-hrms-workflow
+ * Update URI: https://lerionjakenwauda.com/plugins/ljndi-hrms-workflow
  */
 
 if (! defined('ABSPATH')) {
@@ -27,9 +28,11 @@ require_once LJNDI_HRMS_WORKFLOW_DIR . 'includes/class-ljndi-hrms-oauth-client.p
 require_once LJNDI_HRMS_WORKFLOW_DIR . 'includes/class-ljndi-hrms-settings.php';
 require_once LJNDI_HRMS_WORKFLOW_DIR . 'includes/class-ljndi-hrms-authentication.php';
 require_once LJNDI_HRMS_WORKFLOW_DIR . 'includes/class-ljndi-hrms-workflow.php';
+require_once LJNDI_HRMS_WORKFLOW_DIR . 'includes/class-ljndi-hrms-updater.php';
 
 register_activation_hook(__FILE__, array('LJNDI_HRMS_Workflow', 'activate'));
 
 add_action('plugins_loaded', static function () {
     LJNDI_HRMS_Workflow::instance();
+    LJNDI_HRMS_Updater::boot();
 });
