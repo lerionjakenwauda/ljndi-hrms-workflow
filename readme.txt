@@ -4,7 +4,7 @@ Tags: oauth, sso, hrms, staff, security
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,7 @@ The plugin can:
 * Use OAuth 2.1 Authorization Code with mandatory PKCE S256.
 * Link an HRMS employee to an existing WordPress user by verified email.
 * Create a local WordPress user after approved sign-in when enabled.
+* Use the approved HRMS profile photo as the linked user's WordPress avatar.
 * Map exact HRMS roles or departments to WordPress roles.
 * Revalidate linked staff sessions and remove access when HRMS credentials are revoked or the employee becomes inactive.
 * Encrypt the OAuth client secret, access token, and refresh token before storing them in WordPress.
@@ -36,7 +37,9 @@ This plugin connects to the LJNDI HRMS identity service configured by the websit
 
 During sign-in, the browser is redirected to the identity service. The plugin sends the OAuth client ID, exact WordPress callback URL, requested scopes, a random state value, a random nonce, and a PKCE S256 code challenge.
 
-After the employee approves access, the plugin exchanges the short-lived authorization code for an access token and refresh token. It then requests approved employee claims such as employee ID, name, work email, active/inactive status, employment dates, roles, and departments. The employee's HRMS password is entered only on the identity service and is never sent to or stored by this WordPress plugin.
+After the employee approves access, the plugin exchanges the short-lived authorization code for an access token and refresh token. It then requests approved employee claims such as employee ID, name, work email, profile photo URL, active/inactive status, employment dates, roles, and departments. The employee's HRMS password is entered only on the identity service and is never sent to or stored by this WordPress plugin.
+
+The profile photo remains hosted by LJNDI HRMS. WordPress stores only the validated HTTPS image URL and uses it through the normal WordPress avatar system.
 
 The service is operated by Lerion Jake Nwauda Digital Innovations Ltd.
 
@@ -67,6 +70,10 @@ Each WordPress website must have its own OAuth application and credentials. Do n
 
 No. Employees enter their HRMS credentials only on the configured LJNDI identity service.
 
+= Does it copy the HRMS profile photo into WordPress? =
+
+The plugin stores the approved HTTPS profile-photo URL and uses it as the linked user's WordPress avatar across the admin bar, user lists, comments, and themes that use the normal WordPress avatar API. The image itself remains hosted by LJNDI HRMS.
+
 = Does an HRMS job title automatically make someone a WordPress administrator? =
 
 No. The default local role is Subscriber. Administrator access must be mapped explicitly by a WordPress administrator.
@@ -93,11 +100,17 @@ The first public version can run on a site within a multisite installation. It n
 
 == Privacy ==
 
-The plugin stores the linked HRMS employee ID, encrypted OAuth access and refresh tokens, token expiry, last validation time, and the most recent approved identity claims in WordPress user metadata. OAuth client settings are stored in the WordPress options table, with secrets encrypted using keys derived from the WordPress authentication salts.
+The plugin stores the linked HRMS employee ID, encrypted OAuth access and refresh tokens, token expiry, last validation time, the latest approved identity claims, and the validated HRMS profile-photo URL in WordPress user metadata. OAuth client settings are stored in the WordPress options table, with secrets encrypted using keys derived from the WordPress authentication salts.
 
-Uninstalling the plugin removes its settings, linked HRMS metadata, encrypted tokens, cached OAuth discovery data, and pending sign-in transactions. It does not delete WordPress user accounts.
+Uninstalling the plugin removes its settings, linked HRMS metadata, encrypted tokens, synced avatar URL, cached OAuth discovery data, and pending sign-in transactions. It does not delete WordPress user accounts.
 
 == Changelog ==
+
+= 0.1.1 =
+
+* Added HRMS profile-photo synchronisation through the standard WordPress avatar system.
+* Added lazy avatar refresh for users linked before this release.
+* Updated external-service and privacy disclosures for profile images.
 
 = 0.1.0 =
 
@@ -112,6 +125,6 @@ Uninstalling the plugin removes its settings, linked HRMS metadata, encrypted to
 
 == Upgrade Notice ==
 
-= 0.1.0 =
+= 0.1.1 =
 
-Initial public preview. Test on a staging WordPress website before enabling access on a production client website.
+Adds HRMS profile photos as WordPress avatars and updates privacy disclosures.
