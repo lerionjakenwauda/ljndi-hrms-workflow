@@ -17,7 +17,7 @@ final class LJNDI_HRMS_Settings
             'scopes'             => 'openid profile email employment:read roles:read',
             'show_login_button'  => 1,
             'auto_create_users'  => 1,
-            'sync_roles'         => 1,
+            'sync_roles'         => 0,
             'default_role'       => 'subscriber',
             'role_mappings'      => '',
             'revalidate_minutes' => 15,
