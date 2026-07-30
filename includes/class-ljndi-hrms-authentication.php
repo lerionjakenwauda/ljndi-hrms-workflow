@@ -67,7 +67,9 @@ final class LJNDI_HRMS_Authentication
         delete_transient(self::transaction_key($state));
 
         if (! empty($_GET['error'])) {
-            $description = ! empty($_GET['error_description']) ? sanitize_text_field(wp_unslash($_GET['error_description'])) : __('Access was not approved.', 'ljndi-hrms-workflow');
+            $description = ! empty($_GET['error_description'])
+                ? sanitize_text_field(wp_unslash($_GET['error_description']))
+                : __('Access was not approved.', 'ljndi-hrms-workflow');
             self::fail($description);
         }
 
@@ -99,9 +101,10 @@ final class LJNDI_HRMS_Authentication
 
         self::store_session($user_id, $tokens, $claims);
 
+        $user = get_userdata($user_id);
         wp_set_current_user($user_id);
         wp_set_auth_cookie($user_id, true, is_ssl());
-        do_action('wp_login', get_userdata($user_id)->user_login, get_userdata($user_id));
+        do_action('wp_login', $user->user_login, $user);
 
         $redirect_to = ! empty($transaction['redirect_to']) ? $transaction['redirect_to'] : admin_url();
         wp_safe_redirect($redirect_to);
@@ -115,9 +118,9 @@ final class LJNDI_HRMS_Authentication
         }
 
         $user_id = get_current_user_id();
-        $employee_id = get_user_meta($user_id, self::META_EMPLOYEE_ID, true);
+        $employee_id = (string) get_user_meta($user_id, self::META_EMPLOYEE_ID, true);
 
-        if (! $employee_id) {
+        if ($employee_id === '') {
             return;
         }
 
@@ -161,7 +164,10 @@ final class LJNDI_HRMS_Authentication
             self::store_session($user_id, $tokens, $claims);
         }
 
-        if (empty($claims['employee_id']) || $claims['employee_id'] !== $employee_id || strtolower((string) $claims['status']) !== 'active') {
+        $claim_employee_id = isset($claims['employee_id']) ? (string) $claims['employee_id'] : '';
+        $claim_status = isset($claims['status']) ? strtolower((string) $claims['status']) : '';
+
+        if ($claim_employee_id === '' || ! hash_equals($employee_id, $claim_employee_id) || $claim_status !== 'active') {
             self::end_local_session($user_id, __('Your LJNDI HRMS employment access is inactive.', 'ljndi-hrms-workflow'));
         }
 
@@ -172,6 +178,11 @@ final class LJNDI_HRMS_Authentication
 
     public static function revoke_on_logout($user_id)
     {
+        $user_id = absint($user_id);
+        if (! $user_id) {
+            return;
+        }
+
         $refresh_token = LJNDI_HRMS_Crypto::decrypt(get_user_meta($user_id, self::META_REFRESH_TOKEN, true));
 
         if ($refresh_token !== '') {
@@ -224,10 +235,9 @@ final class LJNDI_HRMS_Authentication
                 return new WP_Error('ljndi_user_missing', __('No matching WordPress account exists and automatic account creation is disabled.', 'ljndi-hrms-workflow'));
             }
 
-            $username = self::unique_username($employee_id, $email);
             $user_id = wp_insert_user(
                 array(
-                    'user_login'   => $username,
+                    'user_login'   => self::unique_username($employee_id, $email),
                     'user_pass'    => wp_generate_password(48, true, true),
                     'user_email'   => $email,
                     'display_name' => $name,
@@ -242,8 +252,8 @@ final class LJNDI_HRMS_Authentication
             $user = get_userdata($user_id);
         }
 
-        $linked_employee_id = get_user_meta($user->ID, self::META_EMPLOYEE_ID, true);
-        if ($linked_employee_id && ! hash_equals((string) $linked_employee_id, $employee_id)) {
+        $linked_employee_id = (string) get_user_meta($user->ID, self::META_EMPLOYEE_ID, true);
+        if ($linked_employee_id !== '' && ! hash_equals($linked_employee_id, $employee_id)) {
             return new WP_Error('ljndi_identity_conflict', __('This WordPress account is already linked to another HRMS employee.', 'ljndi-hrms-workflow'));
         }
 
@@ -273,7 +283,7 @@ final class LJNDI_HRMS_Authentication
             $mapped_role = self::mapped_role($claims, $settings);
             $user = new WP_User($user_id);
 
-            if ($mapped_role && get_role($mapped_role) && ! is_multisite_super_admin($user_id)) {
+            if ($mapped_role && get_role($mapped_role) && ! is_super_admin($user_id)) {
                 $user->set_role($mapped_role);
             }
         }
@@ -298,17 +308,18 @@ final class LJNDI_HRMS_Authentication
                     continue;
                 }
 
-                $title_key = 'role:' . strtolower(trim((string) (isset($role['title']) ? $role['title'] : '')));
-                if (isset($map[$title_key]) && get_role($map[$title_key])) {
+                $title = isset($role['title']) ? trim((string) $role['title']) : '';
+                $title_key = 'role:' . strtolower($title);
+                if ($title !== '' && isset($map[$title_key]) && get_role($map[$title_key])) {
                     return $map[$title_key];
                 }
 
                 $department_name = '';
                 if (! empty($role['department']) && is_array($role['department']) && ! empty($role['department']['name'])) {
-                    $department_name = $role['department']['name'];
+                    $department_name = trim((string) $role['department']['name']);
                 }
 
-                $department_key = 'department:' . strtolower(trim((string) $department_name));
+                $department_key = 'department:' . strtolower($department_name);
                 if ($department_name !== '' && isset($map[$department_key]) && get_role($map[$department_key])) {
                     return $map[$department_key];
                 }
@@ -323,7 +334,7 @@ final class LJNDI_HRMS_Authentication
         $access_token = isset($tokens['access_token']) ? LJNDI_HRMS_Crypto::encrypt($tokens['access_token']) : '';
         $refresh_token = isset($tokens['refresh_token']) ? LJNDI_HRMS_Crypto::encrypt($tokens['refresh_token']) : '';
 
-        if (is_wp_error($access_token) || is_wp_error($refresh_token)) {
+        if (is_wp_error($access_token) || is_wp_error($refresh_token) || $access_token === '' || $refresh_token === '') {
             self::fail(__('WordPress could not protect the OAuth session tokens.', 'ljndi-hrms-workflow'));
         }
 
@@ -346,7 +357,7 @@ final class LJNDI_HRMS_Authentication
         self::clear_session_meta($user_id);
         wp_logout();
 
-        if (! wp_doing_ajax() && ! wp_doing_cron() && ! defined('REST_REQUEST')) {
+        if (! wp_doing_ajax() && ! wp_doing_cron() && ! (defined('REST_REQUEST') && REST_REQUEST)) {
             wp_safe_redirect(add_query_arg('ljndi_hrms_notice', rawurlencode($message), wp_login_url()));
             exit;
         }
