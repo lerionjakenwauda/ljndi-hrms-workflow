@@ -13,6 +13,7 @@ $ljndi_hrms_meta_keys = array(
     '_ljndi_hrms_expires_at',
     '_ljndi_hrms_validated_at',
     '_ljndi_hrms_claims',
+    '_ljndi_hrms_avatar_url',
 );
 
 foreach ($ljndi_hrms_meta_keys as $ljndi_hrms_meta_key) {
