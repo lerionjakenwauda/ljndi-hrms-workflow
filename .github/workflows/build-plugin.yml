@@ -25,15 +25,16 @@ jobs:
           test -f build/ljndi-hrms-workflow/readme.txt
           test -f build/ljndi-hrms-workflow/LICENSE
           test -f build/ljndi-hrms-workflow/uninstall.php
+          test -f build/ljndi-hrms-workflow/includes/class-ljndi-hrms-avatar.php
 
       - name: Create installable ZIP
         run: |
           cd build
-          zip -r ljndi-hrms-workflow-0.1.0.zip ljndi-hrms-workflow
+          zip -r ljndi-hrms-workflow-0.1.1.zip ljndi-hrms-workflow
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ljndi-hrms-workflow-0.1.0
-          path: build/ljndi-hrms-workflow-0.1.0.zip
+          name: ljndi-hrms-workflow-0.1.1
+          path: build/ljndi-hrms-workflow-0.1.1.zip
           if-no-files-found: error
           retention-days: 14
