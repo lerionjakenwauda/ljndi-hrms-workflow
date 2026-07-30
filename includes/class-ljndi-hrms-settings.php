@@ -11,16 +11,16 @@ final class LJNDI_HRMS_Settings
     public static function defaults()
     {
         return array(
-            'issuer'               => 'https://auth.lerionjakenwauda.com',
-            'client_id'            => '',
-            'client_secret'        => '',
-            'scopes'               => 'openid profile email employment:read roles:read',
-            'show_login_button'    => 1,
-            'auto_create_users'    => 1,
-            'sync_roles'           => 1,
-            'default_role'         => 'subscriber',
-            'role_mappings'        => "",
-            'revalidate_minutes'   => 15,
+            'issuer'             => 'https://auth.lerionjakenwauda.com',
+            'client_id'          => '',
+            'client_secret'      => '',
+            'scopes'             => 'openid profile email employment:read roles:read',
+            'show_login_button'  => 1,
+            'auto_create_users'  => 1,
+            'sync_roles'         => 1,
+            'default_role'       => 'subscriber',
+            'role_mappings'      => '',
+            'revalidate_minutes' => 15,
         );
     }
 
@@ -175,8 +175,16 @@ final class LJNDI_HRMS_Settings
     private static function sanitize_scopes($value)
     {
         $scopes = preg_split('/\s+/', trim((string) $value), -1, PREG_SPLIT_NO_EMPTY);
-        $scopes = array_unique(array_filter(array_map('sanitize_key', $scopes)));
-        return implode(' ', $scopes);
+        $clean = array();
+
+        foreach ((array) $scopes as $scope) {
+            $scope = preg_replace('/[^A-Za-z0-9:_\-.]/', '', (string) $scope);
+            if ($scope !== '') {
+                $clean[] = $scope;
+            }
+        }
+
+        return implode(' ', array_values(array_unique($clean)));
     }
 
     private static function sanitize_mappings($value)
