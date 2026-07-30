@@ -1,0 +1,32 @@
+name: WordPress Plugin Check
+
+on:
+  push:
+    branches:
+      - main
+      - 'release/**'
+      - 'validation/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  plugin-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build clean plugin directory
+        run: |
+          mkdir -p build/ljndi-hrms-workflow
+          rsync -av --exclude-from=.distignore ./ build/ljndi-hrms-workflow/
+          rm -rf build/ljndi-hrms-workflow/build
+
+      - name: Run WordPress.org plugin repository checks
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: './build/ljndi-hrms-workflow'
+          categories: plugin_repo
+          slug: ljndi-hrms-workflow
+          include-experimental: false

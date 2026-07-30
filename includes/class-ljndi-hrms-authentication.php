@@ -15,6 +15,8 @@ final class LJNDI_HRMS_Authentication
 
     public static function begin_login()
     {
+        check_admin_referer('ljndi_hrms_login');
+
         $settings = LJNDI_HRMS_Settings::get();
 
         if (empty($settings['client_id'])) {
@@ -29,8 +31,10 @@ final class LJNDI_HRMS_Authentication
             self::fail(__('Unable to start a secure sign-in request.', 'ljndi-hrms-workflow'));
         }
 
-        $redirect_to = isset($_REQUEST['redirect_to']) ? wp_unslash($_REQUEST['redirect_to']) : admin_url();
-        $redirect_to = wp_validate_redirect($redirect_to, admin_url());
+        $requested_redirect = isset($_REQUEST['redirect_to'])
+            ? esc_url_raw(wp_unslash($_REQUEST['redirect_to']))
+            : admin_url();
+        $redirect_to = wp_validate_redirect($requested_redirect, admin_url());
 
         set_transient(
             self::transaction_key($state),
@@ -51,13 +55,25 @@ final class LJNDI_HRMS_Authentication
             self::fail($authorization_url->get_error_message());
         }
 
+        // The authorization URL is obtained from validated OAuth discovery metadata.
+        // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
         wp_redirect($authorization_url, 302, 'LJNDI HRMS Workflow');
         exit;
     }
 
     public static function handle_callback()
     {
+        // OAuth callbacks cannot carry a WordPress nonce. The high-entropy state value
+        // and the one-time transient transaction provide request correlation and CSRF protection.
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended
         $state = isset($_GET['state']) ? sanitize_text_field(wp_unslash($_GET['state'])) : '';
+        $oauth_error = isset($_GET['error']) ? sanitize_key(wp_unslash($_GET['error'])) : '';
+        $error_description = isset($_GET['error_description'])
+            ? sanitize_text_field(wp_unslash($_GET['error_description']))
+            : '';
+        $code = isset($_GET['code']) ? sanitize_text_field(wp_unslash($_GET['code'])) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+
         $transaction = $state ? get_transient(self::transaction_key($state)) : false;
 
         if (! is_array($transaction) || empty($transaction['verifier'])) {
@@ -66,14 +82,13 @@ final class LJNDI_HRMS_Authentication
 
         delete_transient(self::transaction_key($state));
 
-        if (! empty($_GET['error'])) {
-            $description = ! empty($_GET['error_description'])
-                ? sanitize_text_field(wp_unslash($_GET['error_description']))
+        if ($oauth_error !== '') {
+            $description = $error_description !== ''
+                ? $error_description
                 : __('Access was not approved.', 'ljndi-hrms-workflow');
             self::fail($description);
         }
 
-        $code = isset($_GET['code']) ? sanitize_text_field(wp_unslash($_GET['code'])) : '';
         if ($code === '') {
             self::fail(__('The identity service did not return an authorization code.', 'ljndi-hrms-workflow'));
         }
@@ -104,6 +119,8 @@ final class LJNDI_HRMS_Authentication
         $user = get_userdata($user_id);
         wp_set_current_user($user_id);
         wp_set_auth_cookie($user_id, true, is_ssl());
+        // Invoke WordPress core's standard post-login hook after programmatic authentication.
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
         do_action('wp_login', $user->user_login, $user);
 
         $redirect_to = ! empty($transaction['redirect_to']) ? $transaction['redirect_to'] : admin_url();
@@ -201,11 +218,17 @@ final class LJNDI_HRMS_Authentication
             return $message;
         }
 
-        $redirect_to = isset($_REQUEST['redirect_to']) ? wp_unslash($_REQUEST['redirect_to']) : admin_url();
+        // This value only controls the local destination after a successful OAuth flow.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $requested_redirect = isset($_REQUEST['redirect_to'])
+            ? esc_url_raw(wp_unslash($_REQUEST['redirect_to']))
+            : admin_url();
+        $redirect_to = wp_validate_redirect($requested_redirect, admin_url());
         $url = add_query_arg(
             array(
                 'action'      => 'ljndi_hrms_login',
-                'redirect_to' => wp_validate_redirect($redirect_to, admin_url()),
+                'redirect_to' => $redirect_to,
+                '_wpnonce'    => wp_create_nonce('ljndi_hrms_login'),
             ),
             admin_url('admin-post.php')
         );
@@ -358,7 +381,7 @@ final class LJNDI_HRMS_Authentication
         wp_logout();
 
         if (! wp_doing_ajax() && ! wp_doing_cron() && ! (defined('REST_REQUEST') && REST_REQUEST)) {
-            wp_safe_redirect(add_query_arg('ljndi_hrms_notice', rawurlencode($message), wp_login_url()));
+            wp_safe_redirect(add_query_arg('ljndi_hrms_notice', 'session-ended', wp_login_url()));
             exit;
         }
     }

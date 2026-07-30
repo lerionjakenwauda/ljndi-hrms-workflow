@@ -87,9 +87,15 @@ final class LJNDI_HRMS_Workflow
 
     public function login_message($message)
     {
-        if (! empty($_GET['ljndi_hrms_notice'])) {
-            $notice = sanitize_text_field(wp_unslash($_GET['ljndi_hrms_notice']));
-            $message .= '<div id="login_error">' . esc_html($notice) . '</div>';
+        // This public query value is only a fixed notice code created by this plugin.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $notice_code = isset($_GET['ljndi_hrms_notice']) ? sanitize_key(wp_unslash($_GET['ljndi_hrms_notice'])) : '';
+        $notices = array(
+            'session-ended' => __('Your LJNDI HRMS session ended. Sign in again to continue.', 'ljndi-hrms-workflow'),
+        );
+
+        if (isset($notices[$notice_code])) {
+            $message .= '<div id="login_error">' . esc_html($notices[$notice_code]) . '</div>';
         }
 
         return LJNDI_HRMS_Authentication::login_message($message);
@@ -136,6 +142,7 @@ final class LJNDI_HRMS_Workflow
         echo '<div class="notice notice-warning"><p>';
         printf(
             wp_kses(
+                /* translators: %s: URL of the LJNDI HRMS Workflow settings page. */
                 __('LJNDI HRMS Workflow is active but not connected. <a href="%s">Add this website’s OAuth credentials</a>.', 'ljndi-hrms-workflow'),
                 array('a' => array('href' => array()))
             ),

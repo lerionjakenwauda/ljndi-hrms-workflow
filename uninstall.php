@@ -6,9 +6,7 @@ if (! defined('WP_UNINSTALL_PLUGIN')) {
 
 delete_option('ljndi_hrms_workflow_settings');
 
-global $wpdb;
-
-$meta_keys = array(
+$ljndi_hrms_meta_keys = array(
     '_ljndi_hrms_employee_id',
     '_ljndi_hrms_access_token',
     '_ljndi_hrms_refresh_token',
@@ -17,10 +15,21 @@ $meta_keys = array(
     '_ljndi_hrms_claims',
 );
 
-foreach ($meta_keys as $meta_key) {
-    $wpdb->delete($wpdb->usermeta, array('meta_key' => $meta_key), array('%s'));
+foreach ($ljndi_hrms_meta_keys as $ljndi_hrms_meta_key) {
+    delete_metadata('user', 0, $ljndi_hrms_meta_key, '', true);
 }
 
-$like = $wpdb->esc_like('_transient_ljndi_hrms_') . '%';
-$timeout_like = $wpdb->esc_like('_transient_timeout_ljndi_hrms_') . '%';
-$wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s", $like, $timeout_like));
+global $wpdb;
+
+$ljndi_hrms_like = $wpdb->esc_like('_transient_ljndi_hrms_') . '%';
+$ljndi_hrms_timeout_like = $wpdb->esc_like('_transient_timeout_ljndi_hrms_') . '%';
+
+// A wildcard delete is necessary to remove short-lived OAuth transactions whose random state is part of the option name.
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$wpdb->query(
+    $wpdb->prepare(
+        "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+        $ljndi_hrms_like,
+        $ljndi_hrms_timeout_like
+    )
+);
